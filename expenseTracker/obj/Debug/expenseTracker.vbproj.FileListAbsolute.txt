@@ -1,0 +1,11 @@
+C:\Users\hp\source\repos\expenseTracker\expenseTracker\obj\Debug\expenseTracker.vbproj.AssemblyReference.cache
+C:\Users\hp\source\repos\expenseTracker\expenseTracker\obj\Debug\expenseTracker.Resources.resources
+C:\Users\hp\source\repos\expenseTracker\expenseTracker\obj\Debug\expenseTracker.vbproj.GenerateResource.cache
+C:\Users\hp\source\repos\expenseTracker\expenseTracker\obj\Debug\expenseTracker.vbproj.CoreCompileInputs.cache
+C:\Users\hp\source\repos\expenseTracker\expenseTracker\bin\Debug\expenseTracker.exe.config
+C:\Users\hp\source\repos\expenseTracker\expenseTracker\bin\Debug\expenseTracker.exe
+C:\Users\hp\source\repos\expenseTracker\expenseTracker\bin\Debug\expenseTracker.pdb
+C:\Users\hp\source\repos\expenseTracker\expenseTracker\bin\Debug\expenseTracker.xml
+C:\Users\hp\source\repos\expenseTracker\expenseTracker\obj\Debug\expenseTracker.exe
+C:\Users\hp\source\repos\expenseTracker\expenseTracker\obj\Debug\expenseTracker.xml
+C:\Users\hp\source\repos\expenseTracker\expenseTracker\obj\Debug\expenseTracker.pdb
