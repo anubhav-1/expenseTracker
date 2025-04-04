@@ -4,28 +4,8 @@ Imports System.Diagnostics
 Imports System.Globalization
 Imports System.Text
 
-Public Class Dashboard
+Partial Public Class Dashboard
     Inherits Form
-
-    ' Declare controls
-    Private pnlMenu As Panel
-    Private pnlMain As Panel
-    Private BtnDashboard As Button
-    Private BtnSalary As Button
-    Private BtnTestDB As Button
-    Private BtnReports As Button
-    Private BtnAnalysis As Button
-    Private BtnLogout As Button  ' New logout button
-
-    ' Financial summary controls
-    Private contentPanel As Panel
-    Private summaryPanel As Panel
-    Private salaryBox As Panel
-    Private salaryValueLabel As Label
-    Private expensesBox As Panel
-    Private expensesValueLabel As Label
-    Private remainingBox As Panel
-    Private remainingValueLabel As Label
 
     ' Reference to Login form
     Private loginForm As Login
@@ -34,13 +14,11 @@ Public Class Dashboard
     Private connectionString As String = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=D:\ExpenseTracker.accdb;Persist Security Info=False;"
 
     Public Sub New()
-        ' Form setup
-        Me.Text = "Expense Tracker"
-        Me.Size = New Size(1200, 800)
-        Me.StartPosition = FormStartPosition.CenterScreen
-        Me.BackColor = Color.FromArgb(34, 40, 49)
+        ' This call is required by the designer
+        InitializeComponent()
 
-        InitializeComponents()
+        ' Add custom initialization after InitializeComponent
+        ShowDashboard()
     End Sub
 
     Public Sub New(loginForm As Login)
@@ -48,99 +26,28 @@ Public Class Dashboard
         Me.loginForm = loginForm
     End Sub
 
-    Private Sub InitializeComponents()
-        ' Menu panel
-        pnlMenu = New Panel()
-        pnlMenu.BackColor = Color.FromArgb(45, 52, 64)
-        pnlMenu.Dock = DockStyle.Left
-        pnlMenu.Width = 200
-        Me.Controls.Add(pnlMenu)
-
-        ' Dashboard button
-        BtnDashboard = CreateMenuButton("Dashboard", 20)
-        AddHandler BtnDashboard.Click, AddressOf BtnDashboard_Click
-        pnlMenu.Controls.Add(BtnDashboard)
-
-        ' Salary button
-        BtnSalary = CreateMenuButton("Salary", 80)
-        AddHandler BtnSalary.Click, AddressOf BtnSalary_Click
-        pnlMenu.Controls.Add(BtnSalary)
-
-        ' Test DB button
-        BtnTestDB = CreateMenuButton("Test DB", 140)
-        AddHandler BtnTestDB.Click, AddressOf BtnTestDB_Click
-        pnlMenu.Controls.Add(BtnTestDB)
-
-        ' Reports button
-        BtnReports = CreateMenuButton("Reports", 200)
-        AddHandler BtnReports.Click, AddressOf BtnReports_Click
-        pnlMenu.Controls.Add(BtnReports)
-
-        ' Analysis button
-        BtnAnalysis = CreateMenuButton("Analysis", 260)
-        AddHandler BtnAnalysis.Click, AddressOf BtnAnalysis_Click
-        pnlMenu.Controls.Add(BtnAnalysis)
-
-        ' Logout button - new
-        BtnLogout = CreateMenuButton("Logout", 320)
-        BtnLogout.BackColor = Color.FromArgb(255, 77, 77)  ' Red color for logout
-        AddHandler BtnLogout.Click, AddressOf BtnLogout_Click
-        AddHandler BtnLogout.MouseEnter, AddressOf LogoutButton_MouseEnter
-        AddHandler BtnLogout.MouseLeave, AddressOf LogoutButton_MouseLeave
-        pnlMenu.Controls.Add(BtnLogout)
-
-        ' Main content panel
-        pnlMain = New Panel()
-        pnlMain.BackColor = Color.FromArgb(57, 62, 70)
-        pnlMain.Location = New Point(pnlMenu.Width, 0)
-        pnlMain.Size = New Size(Me.Width - pnlMenu.Width, Me.Height)
-        Me.Controls.Add(pnlMain)
-
+    Private Sub BtnDashboard_Click(sender As Object, e As EventArgs) Handles BtnDashboard.Click
         ShowDashboard()
     End Sub
 
-    Private Function CreateMenuButton(text As String, top As Integer) As Button
-        Dim btn As New Button()
-        btn.Text = text
-        btn.Location = New Point(10, top)
-        btn.Size = New Size(180, 40)
-        btn.FlatStyle = FlatStyle.Flat
-        btn.FlatAppearance.BorderSize = 0
-        btn.BackColor = Color.FromArgb(0, 173, 181)
-        btn.ForeColor = Color.White
-        btn.Font = New Font("Segoe UI", 12, FontStyle.Bold)
-        btn.Cursor = Cursors.Hand
-        AddHandler btn.MouseEnter, AddressOf Button_MouseEnter
-        AddHandler btn.MouseLeave, AddressOf Button_MouseLeave
-        Return btn
-    End Function
-
-    Private Sub BtnDashboard_Click(sender As Object, e As EventArgs)
-        ShowDashboard()
-    End Sub
-
-    Private Sub BtnSalary_Click(sender As Object, e As EventArgs)
+    Private Sub BtnSalary_Click(sender As Object, e As EventArgs) Handles BtnSalary.Click
         ShowSalary()
     End Sub
 
-    Private Sub BtnTestDB_Click(sender As Object, e As EventArgs)
-        TestDatabaseConnection()
-    End Sub
-
     ' Reports button handler
-    Private Sub BtnReports_Click(sender As Object, e As EventArgs)
+    Private Sub BtnReports_Click(sender As Object, e As EventArgs) Handles BtnReports.Click
         ShowReports()
     End Sub
 
     ' Analysis button handler
-    Private Sub BtnAnalysis_Click(sender As Object, e As EventArgs)
+    Private Sub BtnAnalysis_Click(sender As Object, e As EventArgs) Handles BtnAnalysis.Click
         ShowAnalysis()
     End Sub
 
-    ' Logout button handler - new
-    Private Sub BtnLogout_Click(sender As Object, e As EventArgs)
+    ' Logout button handler
+    Private Sub BtnLogout_Click(sender As Object, e As EventArgs) Handles BtnLogout.Click
         Dim result As DialogResult = MessageBox.Show("Are you sure you want to log out?", "Confirm Logout",
-                                                    MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+                                                  MessageBoxButtons.YesNo, MessageBoxIcon.Question)
 
         If result = DialogResult.Yes Then
             ' Show login form
@@ -758,14 +665,12 @@ Public Class Dashboard
         btn.BackColor = Color.FromArgb(255, 77, 77)
     End Sub
 
-    ' Logout button hover effects - new
-    Private Sub LogoutButton_MouseEnter(sender As Object, e As EventArgs)
-        Dim btn = CType(sender, Button)
-        btn.BackColor = Color.FromArgb(220, 50, 50)
+    ' Logout button hover effects
+    Private Sub LogoutButton_MouseEnter(sender As Object, e As EventArgs) Handles BtnLogout.MouseEnter
+        BtnLogout.BackColor = Color.FromArgb(220, 50, 50)
     End Sub
 
-    Private Sub LogoutButton_MouseLeave(sender As Object, e As EventArgs)
-        Dim btn = CType(sender, Button)
-        btn.BackColor = Color.FromArgb(255, 77, 77)
+    Private Sub LogoutButton_MouseLeave(sender As Object, e As EventArgs) Handles BtnLogout.MouseLeave
+        BtnLogout.BackColor = Color.FromArgb(255, 77, 77)
     End Sub
 End Class
