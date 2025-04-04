@@ -14,7 +14,6 @@ Public Class ReportsAnalytics
     Private lblTimeFrame As Label
     Private lblYear As Label
     Private lblMonth As Label
-    Private cmbReportType As ComboBox
     Private cmbTimeFrame As ComboBox
     Private cmbYear As ComboBox
     Private cmbMonth As ComboBox
@@ -27,14 +26,15 @@ Public Class ReportsAnalytics
     Private pnlPieChart As Panel
     Private pnlBarChart As Panel
 
-    ' Report generators
-    Private categoryReportGenerator As CategoryReportGenerator
-    Private monthlyReportGenerator As MonthlyReportGenerator
+    ' Report generator
     Private incomeExpenseReportGenerator As IncomeExpenseReportGenerator
+
+    ' Track if a report has been generated
+    Private reportGenerated As Boolean = False
 
     Public Sub New()
         ' Form setup
-        Me.Text = "Reports & Analytics"
+        Me.Text = "Income vs Expenses Report"
         Me.Size = New Size(1000, 800)
         Me.StartPosition = FormStartPosition.CenterScreen
         Me.BackColor = Color.FromArgb(34, 40, 49)
@@ -42,7 +42,7 @@ Public Class ReportsAnalytics
         Me.Dock = DockStyle.Fill
 
         InitializeComponents()
-        InitializeReportGenerators()
+        InitializeReportGenerator()
     End Sub
 
     Private Sub InitializeComponents()
@@ -54,25 +54,14 @@ Public Class ReportsAnalytics
         pnlFilters.Padding = New Padding(10)
         Me.Controls.Add(pnlFilters)
 
-        ' Report Type selector
+        ' Report Type label - static text now
         lblReportType = New Label()
-        lblReportType.Text = "Report Type:"
+        lblReportType.Text = "Report Type: Income vs Expenses"
         lblReportType.ForeColor = Color.White
-        lblReportType.Font = New Font("Segoe UI", 10, FontStyle.Bold)
+        lblReportType.Font = New Font("Segoe UI", 12, FontStyle.Bold)
         lblReportType.Location = New Point(20, 15)
         lblReportType.AutoSize = True
         pnlFilters.Controls.Add(lblReportType)
-
-        cmbReportType = New ComboBox()
-        cmbReportType.Location = New Point(120, 12)
-        cmbReportType.Size = New Size(180, 28)
-        cmbReportType.BackColor = Color.FromArgb(57, 62, 70)
-        cmbReportType.ForeColor = Color.White
-        cmbReportType.DropDownStyle = ComboBoxStyle.DropDownList
-        cmbReportType.Font = New Font("Segoe UI", 10)
-        cmbReportType.Items.AddRange(New Object() {"Expenses by Category", "Monthly Expense Trend", "Income vs Expenses"})
-        cmbReportType.SelectedIndex = 0
-        pnlFilters.Controls.Add(cmbReportType)
 
         ' Time Frame selector
         lblTimeFrame = New Label()
@@ -229,11 +218,24 @@ Public Class ReportsAnalytics
         pnlDataGrid.Controls.Add(dgvReportData)
     End Sub
 
-    Private Sub InitializeReportGenerators()
-        ' Initialize report generators with necessary controls
-        categoryReportGenerator = New CategoryReportGenerator(connectionString, dgvReportData, pnlPieChart, pnlBarChart)
-        monthlyReportGenerator = New MonthlyReportGenerator(connectionString, dgvReportData, pnlPieChart, pnlBarChart)
+    Private Sub InitializeReportGenerator()
+        ' Initialize only the income expense report generator
         incomeExpenseReportGenerator = New IncomeExpenseReportGenerator(connectionString, dgvReportData, pnlPieChart, pnlBarChart)
+
+        ' Add default welcome message to chart panels - this prevents automatic data loading
+        AddHandler pnlPieChart.Paint, AddressOf DrawWelcomeMessage
+        AddHandler pnlBarChart.Paint, AddressOf DrawWelcomeMessage
+    End Sub
+
+    ' Display welcome message instead of trying to load data automatically
+    Private Sub DrawWelcomeMessage(sender As Object, e As PaintEventArgs)
+        ' Only draw welcome message if no report has been generated yet
+        If Not reportGenerated Then
+            Using brush As New SolidBrush(Color.White)
+                e.Graphics.DrawString("Select time frame, then click 'Generate Report'",
+                                     New Font("Segoe UI", 11), brush, 20, 150)
+            End Using
+        End If
     End Sub
 
     ' Event handlers
@@ -248,21 +250,26 @@ Public Class ReportsAnalytics
     End Sub
 
     Private Sub OnGenerateReport(sender As Object, e As EventArgs)
-        ' Generate the selected report
+        ' Generate the report
         Try
             ' Get date range
             Dim dateRange As DateRange = GetDateRange()
 
-            ' Generate report based on selected type
-            Dim reportType As String = cmbReportType.SelectedItem.ToString()
-            Select Case reportType
-                Case "Expenses by Category"
-                    categoryReportGenerator.GenerateReport(dateRange)
-                Case "Monthly Expense Trend"
-                    monthlyReportGenerator.GenerateReport(dateRange)
-                Case "Income vs Expenses"
-                    incomeExpenseReportGenerator.GenerateReport(dateRange)
-            End Select
+            ' Debug info to see the exact dates being used
+            Debug.WriteLine($"Generating income vs expenses report from {dateRange.StartDate} to {dateRange.EndDate}")
+            Debug.WriteLine($"Formatted dates: {dateRange.GetFormattedStartDate()} to {dateRange.GetFormattedEndDate()}")
+
+            ' Before generating a new report, remove the welcome message handlers
+            If Not reportGenerated Then
+                RemoveHandler pnlPieChart.Paint, AddressOf DrawWelcomeMessage
+                RemoveHandler pnlBarChart.Paint, AddressOf DrawWelcomeMessage
+                reportGenerated = True
+            End If
+
+            ' Generate income vs expenses report
+            Debug.WriteLine("Calling incomeExpenseReportGenerator.GenerateReport...")
+            incomeExpenseReportGenerator.GenerateReport(dateRange)
+            Debug.WriteLine("Report generation complete")
 
         Catch ex As Exception
             MessageBox.Show("Error generating report: " & ex.Message, "Report Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
@@ -290,16 +297,15 @@ Public Class ReportsAnalytics
                 Dim selectedMonth As Integer = cmbMonth.SelectedIndex + 1
                 startDate = New DateTime(selectedYear, selectedMonth, 1)
 
-                ' For Income vs Expenses report, we want to show the whole year
-                If cmbReportType.SelectedItem.ToString() = "Income vs Expenses" Then
-                    endDate = New DateTime(selectedYear, 12, 31)
-                Else
-                    ' For category and monthly reports, just show the selected month
-                    endDate = startDate.AddMonths(1).AddDays(-1)
-                End If
+                ' For Income vs Expenses report, we want to show the whole period
+                endDate = New DateTime(selectedYear, 12, 31)
+
             Case Else
                 startDate = New DateTime(DateTime.Now.Year, DateTime.Now.Month, 1)
         End Select
+
+        ' Log the date range for debugging
+        Debug.WriteLine($"Date range: {startDate.ToString("MM/dd/yyyy")} to {endDate.ToString("MM/dd/yyyy")}")
 
         Return New DateRange(startDate, endDate)
     End Function

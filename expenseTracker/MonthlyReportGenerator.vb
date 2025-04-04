@@ -1,4 +1,5 @@
-﻿Imports System.Windows.Forms
+﻿Imports System
+Imports System.Windows.Forms
 Imports System.Data.OleDb
 Imports System.Drawing
 Imports System.Drawing.Drawing2D
@@ -15,6 +16,9 @@ Public Class MonthlyReportGenerator
 
     ' Chart data
     Private monthlyData As New Dictionary(Of String, Decimal)
+
+    ' Flag to track if data has been loaded
+    Private dataLoaded As Boolean = False
 
     ' Constructor
     Public Sub New(connectionString As String, dgvReportData As DataGridView, pnlPieChart As Panel, pnlBarChart As Panel)
@@ -36,6 +40,9 @@ Public Class MonthlyReportGenerator
         ' Load data
         LoadMonthlyData(dateRange)
 
+        ' Mark that data has been loaded
+        dataLoaded = True
+
         ' Refresh charts
         pnlPieChart.Invalidate()
         pnlBarChart.Invalidate()
@@ -54,9 +61,12 @@ Public Class MonthlyReportGenerator
 
     ' Load monthly data from database
     Private Sub LoadMonthlyData(dateRange As DateRange)
-        ' Format dates for query
+        ' Format dates for query - using MM/dd/yyyy format for Access
         Dim startDateStr As String = dateRange.GetFormattedStartDate()
         Dim endDateStr As String = dateRange.GetFormattedEndDate()
+
+        ' Debug info
+        Debug.WriteLine($"Loading monthly expenses from {startDateStr} to {endDateStr}")
 
         ' Clear existing data
         monthlyData.Clear()
@@ -67,18 +77,39 @@ Public Class MonthlyReportGenerator
             Using connection As New OleDbConnection(connectionString)
                 connection.Open()
 
+                ' Check if we have any data in the date range
+                Dim checkQuery As String = "SELECT COUNT(*) FROM Expenses WHERE [Timestamp] BETWEEN #" & startDateStr & "# AND #" & endDateStr & "#"
+
+                Debug.WriteLine("Check query: " + checkQuery)
+
+                Using checkCommand As New OleDbCommand(checkQuery, connection)
+                    Dim count = Convert.ToInt32(checkCommand.ExecuteScalar())
+                    If count = 0 Then
+                        MessageBox.Show("No expenses found for the selected date range.", "No Data", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                        Return
+                    End If
+                End Using
+
                 ' Query to get expenses by month - using Format to get month from date
-                Dim query As String = "SELECT Format(Timestamp,'yyyy-mm') AS YearMonth, SUM(Amount) AS TotalAmount " &
+                Dim query As String = "SELECT Format([Timestamp],'yyyy-mm') AS YearMonth, SUM([Amount]) AS TotalAmount " &
                                      "FROM Expenses " &
-                                     "WHERE Timestamp BETWEEN #" & startDateStr & "# AND #" & endDateStr & "# " &
-                                     "GROUP BY Format(Timestamp,'yyyy-mm') " &
+                                     "WHERE [Timestamp] BETWEEN #" & startDateStr & "# AND #" & endDateStr & "# " &
+                                     "GROUP BY Format([Timestamp],'yyyy-mm') " &
                                      "ORDER BY YearMonth"
+
+                Debug.WriteLine("Monthly query: " + query)
 
                 Using command As New OleDbCommand(query, connection)
                     Using reader As OleDbDataReader = command.ExecuteReader()
                         While reader.Read()
                             Dim yearMonth As String = reader("YearMonth").ToString()
-                            Dim amount As Decimal = Convert.ToDecimal(reader("TotalAmount"))
+                            Dim amount As Decimal = 0
+
+                            If Not IsDBNull(reader("TotalAmount")) Then
+                                amount = Convert.ToDecimal(reader("TotalAmount"))
+                            End If
+
+                            Debug.WriteLine($"Month: {yearMonth}, Amount: {amount}")
 
                             ' Parse year and month
                             Dim parts As String() = yearMonth.Split("-"c)
@@ -91,7 +122,7 @@ Public Class MonthlyReportGenerator
                                 Dim monthName As String = monthDate.ToString("MMM yyyy")
 
                                 ' Store for chart
-                                monthlyData.Add(monthName, amount)
+                                monthlyData(monthName) = amount
 
                                 ' Calculate average per day
                                 Dim daysInMonth As Integer = DateTime.DaysInMonth(year, month)
@@ -112,6 +143,11 @@ Public Class MonthlyReportGenerator
 
     ' Draw the pie chart (placeholder - not really useful for monthly data)
     Private Sub OnDrawPieChart(sender As Object, e As PaintEventArgs)
+        ' Check if data has been loaded - if not, return without trying to draw
+        If Not dataLoaded Then
+            Return
+        End If
+
         ' Draw instruction message since pie chart isn't ideal for monthly data
         Using brush As New SolidBrush(Color.White)
             e.Graphics.DrawString("Monthly Expense Breakdown", New Font("Segoe UI", 16, FontStyle.Bold), brush, 50, 50)
@@ -122,6 +158,11 @@ Public Class MonthlyReportGenerator
 
     ' Draw the bar chart (monthly trend)
     Private Sub OnDrawBarChart(sender As Object, e As PaintEventArgs)
+        ' Check if data has been loaded - if not, return without trying to draw
+        If Not dataLoaded Then
+            Return
+        End If
+
         ' Check if we have data
         If monthlyData Is Nothing OrElse monthlyData.Count = 0 Then
             ' Draw message when no data available
@@ -169,7 +210,7 @@ Public Class MonthlyReportGenerator
             e.Graphics.DrawLine(axisPen, chartRect.Left, chartRect.Top, chartRect.Left, chartRect.Bottom)
 
             ' Y-axis labels
-            Using brush As New SolidBrush(Color.White)
+            Using brush As New SolidBrush(Color.LightGray)
                 Dim font As New Font("Segoe UI", 8)
 
                 ' Draw value labels on Y-axis
@@ -189,7 +230,12 @@ Public Class MonthlyReportGenerator
         Dim barColor As Color = Color.FromArgb(0, 173, 181)  ' Teal
 
         ' Order by date (months are already in order they were added from query)
-        For Each kvp As KeyValuePair(Of String, Decimal) In monthlyData
+        Dim sortedMonths = New List(Of KeyValuePair(Of String, Decimal))(monthlyData)
+
+        ' Sort based on DateTime parsing of month names
+        sortedMonths.Sort(Function(a, b) DateTime.Parse("01 " & a.Key).CompareTo(DateTime.Parse("01 " & b.Key)))
+
+        For Each kvp As KeyValuePair(Of String, Decimal) In sortedMonths
             Dim monthName As String = kvp.Key
             Dim amount As Decimal = kvp.Value
 
@@ -248,8 +294,12 @@ Public Class MonthlyReportGenerator
 
         Dim points As New List(Of Point)
 
+        ' Sort months chronologically
+        Dim sortedMonths = New List(Of KeyValuePair(Of String, Decimal))(monthlyData)
+        sortedMonths.Sort(Function(a, b) DateTime.Parse("01 " & a.Key).CompareTo(DateTime.Parse("01 " & b.Key)))
+
         ' Collect points for each bar top
-        For Each kvp As KeyValuePair(Of String, Decimal) In monthlyData
+        For Each kvp As KeyValuePair(Of String, Decimal) In sortedMonths
             Dim amount As Decimal = kvp.Value
 
             ' Skip if zero (but still advance x position)

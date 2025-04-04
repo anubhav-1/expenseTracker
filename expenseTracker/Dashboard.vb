@@ -10,10 +10,12 @@ Public Class Dashboard
     ' Declare controls
     Private pnlMenu As Panel
     Private pnlMain As Panel
-    Private btnDashboard As Button
-    Private btnSalary As Button
-    Private btnTestDB As Button
-    Private btnReports As Button ' Added Reports button
+    Private BtnDashboard As Button
+    Private BtnSalary As Button
+    Private BtnTestDB As Button
+    Private BtnReports As Button
+    Private BtnAnalysis As Button
+    Private BtnLogout As Button  ' New logout button
 
     ' Financial summary controls
     Private contentPanel As Panel
@@ -24,6 +26,9 @@ Public Class Dashboard
     Private expensesValueLabel As Label
     Private remainingBox As Panel
     Private remainingValueLabel As Label
+
+    ' Reference to Login form
+    Private loginForm As Login
 
     ' Database connection
     Private connectionString As String = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=D:\ExpenseTracker.accdb;Persist Security Info=False;"
@@ -38,6 +43,11 @@ Public Class Dashboard
         InitializeComponents()
     End Sub
 
+    Public Sub New(loginForm As Login)
+        Me.New()
+        Me.loginForm = loginForm
+    End Sub
+
     Private Sub InitializeComponents()
         ' Menu panel
         pnlMenu = New Panel()
@@ -47,24 +57,37 @@ Public Class Dashboard
         Me.Controls.Add(pnlMenu)
 
         ' Dashboard button
-        btnDashboard = CreateMenuButton("Dashboard", 20)
-        AddHandler btnDashboard.Click, AddressOf btnDashboard_Click
-        pnlMenu.Controls.Add(btnDashboard)
+        BtnDashboard = CreateMenuButton("Dashboard", 20)
+        AddHandler BtnDashboard.Click, AddressOf BtnDashboard_Click
+        pnlMenu.Controls.Add(BtnDashboard)
 
         ' Salary button
-        btnSalary = CreateMenuButton("Salary", 80)
-        AddHandler btnSalary.Click, AddressOf btnSalary_Click
-        pnlMenu.Controls.Add(btnSalary)
+        BtnSalary = CreateMenuButton("Salary", 80)
+        AddHandler BtnSalary.Click, AddressOf BtnSalary_Click
+        pnlMenu.Controls.Add(BtnSalary)
 
         ' Test DB button
-        btnTestDB = CreateMenuButton("Test DB", 140)
-        AddHandler btnTestDB.Click, AddressOf btnTestDB_Click
-        pnlMenu.Controls.Add(btnTestDB)
+        BtnTestDB = CreateMenuButton("Test DB", 140)
+        AddHandler BtnTestDB.Click, AddressOf BtnTestDB_Click
+        pnlMenu.Controls.Add(BtnTestDB)
 
-        ' Reports button - new
-        btnReports = CreateMenuButton("Reports", 200)
-        AddHandler btnReports.Click, AddressOf btnReports_Click
-        pnlMenu.Controls.Add(btnReports)
+        ' Reports button
+        BtnReports = CreateMenuButton("Reports", 200)
+        AddHandler BtnReports.Click, AddressOf BtnReports_Click
+        pnlMenu.Controls.Add(BtnReports)
+
+        ' Analysis button
+        BtnAnalysis = CreateMenuButton("Analysis", 260)
+        AddHandler BtnAnalysis.Click, AddressOf BtnAnalysis_Click
+        pnlMenu.Controls.Add(BtnAnalysis)
+
+        ' Logout button - new
+        BtnLogout = CreateMenuButton("Logout", 320)
+        BtnLogout.BackColor = Color.FromArgb(255, 77, 77)  ' Red color for logout
+        AddHandler BtnLogout.Click, AddressOf BtnLogout_Click
+        AddHandler BtnLogout.MouseEnter, AddressOf LogoutButton_MouseEnter
+        AddHandler BtnLogout.MouseLeave, AddressOf LogoutButton_MouseLeave
+        pnlMenu.Controls.Add(BtnLogout)
 
         ' Main content panel
         pnlMain = New Panel()
@@ -92,21 +115,46 @@ Public Class Dashboard
         Return btn
     End Function
 
-    Private Sub btnDashboard_Click(sender As Object, e As EventArgs)
+    Private Sub BtnDashboard_Click(sender As Object, e As EventArgs)
         ShowDashboard()
     End Sub
 
-    Private Sub btnSalary_Click(sender As Object, e As EventArgs)
+    Private Sub BtnSalary_Click(sender As Object, e As EventArgs)
         ShowSalary()
     End Sub
 
-    Private Sub btnTestDB_Click(sender As Object, e As EventArgs)
+    Private Sub BtnTestDB_Click(sender As Object, e As EventArgs)
         TestDatabaseConnection()
     End Sub
 
-    ' New Reports button handler
-    Private Sub btnReports_Click(sender As Object, e As EventArgs)
+    ' Reports button handler
+    Private Sub BtnReports_Click(sender As Object, e As EventArgs)
         ShowReports()
+    End Sub
+
+    ' Analysis button handler
+    Private Sub BtnAnalysis_Click(sender As Object, e As EventArgs)
+        ShowAnalysis()
+    End Sub
+
+    ' Logout button handler - new
+    Private Sub BtnLogout_Click(sender As Object, e As EventArgs)
+        Dim result As DialogResult = MessageBox.Show("Are you sure you want to log out?", "Confirm Logout",
+                                                    MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+
+        If result = DialogResult.Yes Then
+            ' Show login form
+            If Me.loginForm IsNot Nothing Then
+                Me.loginForm.Show()
+            Else
+                ' Create new login form if reference is missing
+                Dim newLogin As New Login()
+                newLogin.Show()
+            End If
+
+            ' Close dashboard
+            Me.Close()
+        End If
     End Sub
 
     Private Sub ShowDashboard()
@@ -351,7 +399,7 @@ Public Class Dashboard
         btnAdd.ForeColor = Color.White
         btnAdd.Font = New Font("Segoe UI", 12, FontStyle.Bold)
         btnAdd.Cursor = Cursors.Hand
-        AddHandler btnAdd.Click, AddressOf btnAddSalary_Click
+        AddHandler btnAdd.Click, AddressOf BtnAddSalary_Click
         AddHandler btnAdd.MouseEnter, AddressOf Button_MouseEnter
         AddHandler btnAdd.MouseLeave, AddressOf Button_MouseLeave
         salaryPanel.Controls.Add(btnAdd)
@@ -419,7 +467,7 @@ Public Class Dashboard
         btnDelete.ForeColor = Color.White
         btnDelete.Font = New Font("Segoe UI", 12, FontStyle.Bold)
         btnDelete.Cursor = Cursors.Hand
-        AddHandler btnDelete.Click, AddressOf btnDeleteSalary_Click
+        AddHandler btnDelete.Click, AddressOf BtnDeleteSalary_Click
         AddHandler btnDelete.MouseEnter, AddressOf DeleteButton_MouseEnter
         AddHandler btnDelete.MouseLeave, AddressOf DeleteButton_MouseLeave
         salaryPanel.Controls.Add(btnDelete)
@@ -439,7 +487,7 @@ Public Class Dashboard
                                       End Sub
     End Sub
 
-    Private Sub btnAddSalary_Click(sender As Object, e As EventArgs)
+    Private Sub BtnAddSalary_Click(sender As Object, e As EventArgs)
         ' Find the parent panel and controls
         Dim salaryPanel = CType(sender.Parent, Panel)
         Dim txtAmount = CType(salaryPanel.Controls("txtSalaryAmount"), TextBox)
@@ -506,7 +554,7 @@ Public Class Dashboard
         End Try
     End Sub
 
-    Private Sub btnDeleteSalary_Click(sender As Object, e As EventArgs)
+    Private Sub BtnDeleteSalary_Click(sender As Object, e As EventArgs)
         Dim salaryPanel = CType(sender.Parent, Panel)
         Dim dgv = CType(salaryPanel.Controls("dgvSalary"), DataGridView)
 
@@ -616,7 +664,7 @@ Public Class Dashboard
         End Try
     End Sub
 
-    ' New method to show Reports & Analytics
+    ' Method to show Reports & Analytics
     Private Sub ShowReports()
         pnlMain.Controls.Clear()
 
@@ -632,6 +680,27 @@ Public Class Dashboard
         reportsAnalytics.Dock = DockStyle.Fill
         reportsPanel.Controls.Add(reportsAnalytics)
         reportsAnalytics.Show()
+
+        ' Update financial summary
+        UpdateFinancialSummary()
+    End Sub
+
+    ' Method to show Spending Analysis tab
+    Private Sub ShowAnalysis()
+        pnlMain.Controls.Clear()
+
+        Dim analysisPanel As New Panel()
+        analysisPanel.Dock = DockStyle.Fill
+        analysisPanel.BackColor = Color.FromArgb(57, 62, 70)
+        pnlMain.Controls.Add(analysisPanel)
+
+        ' Create and add the SpendingAnalysis form
+        Dim spendingAnalysis As New SpendingAnalysis()
+        spendingAnalysis.TopLevel = False
+        spendingAnalysis.FormBorderStyle = FormBorderStyle.None
+        spendingAnalysis.Dock = DockStyle.Fill
+        analysisPanel.Controls.Add(spendingAnalysis)
+        spendingAnalysis.Show()
 
         ' Update financial summary
         UpdateFinancialSummary()
@@ -685,6 +754,17 @@ Public Class Dashboard
     End Sub
 
     Private Sub DeleteButton_MouseLeave(sender As Object, e As EventArgs)
+        Dim btn = CType(sender, Button)
+        btn.BackColor = Color.FromArgb(255, 77, 77)
+    End Sub
+
+    ' Logout button hover effects - new
+    Private Sub LogoutButton_MouseEnter(sender As Object, e As EventArgs)
+        Dim btn = CType(sender, Button)
+        btn.BackColor = Color.FromArgb(220, 50, 50)
+    End Sub
+
+    Private Sub LogoutButton_MouseLeave(sender As Object, e As EventArgs)
         Dim btn = CType(sender, Button)
         btn.BackColor = Color.FromArgb(255, 77, 77)
     End Sub

@@ -1,4 +1,5 @@
-﻿Imports System.Windows.Forms
+﻿Imports System
+Imports System.Windows.Forms
 Imports System.Data.OleDb
 Imports System.Drawing
 Imports System.Drawing.Drawing2D
@@ -16,6 +17,9 @@ Public Class CategoryReportGenerator
     ' Chart data
     Private categoryData As New Dictionary(Of String, Decimal)
 
+    ' Flag to track if data has been loaded
+    Private dataLoaded As Boolean = False
+
     ' Constructor
     Public Sub New(connectionString As String, dgvReportData As DataGridView, pnlPieChart As Panel, pnlBarChart As Panel)
         Me.connectionString = connectionString
@@ -23,7 +27,7 @@ Public Class CategoryReportGenerator
         Me.pnlPieChart = pnlPieChart
         Me.pnlBarChart = pnlBarChart
 
-        ' Set up chart event handlers
+        ' Set up chart event handlers - but don't load data automatically
         AddHandler pnlPieChart.Paint, AddressOf OnDrawPieChart
         AddHandler pnlBarChart.Paint, AddressOf OnDrawBarChart
     End Sub
@@ -35,6 +39,9 @@ Public Class CategoryReportGenerator
 
         ' Load data
         LoadCategoryData(dateRange)
+
+        ' Mark that data has been loaded
+        dataLoaded = True
 
         ' Refresh charts
         pnlPieChart.Invalidate()
@@ -54,9 +61,12 @@ Public Class CategoryReportGenerator
 
     ' Load category data from database
     Private Sub LoadCategoryData(dateRange As DateRange)
-        ' Format dates for query
+        ' Format dates for query using consistent MM/dd/yyyy format for Access
         Dim startDateStr As String = dateRange.GetFormattedStartDate()
         Dim endDateStr As String = dateRange.GetFormattedEndDate()
+
+        ' Debug info
+        Debug.WriteLine($"Loading expense categories from {startDateStr} to {endDateStr}")
 
         ' Clear existing data
         categoryData.Clear()
@@ -69,21 +79,35 @@ Public Class CategoryReportGenerator
 
                 ' Get total expenses first
                 Dim totalExpenses As Decimal = 0
-                Using command As New OleDbCommand("SELECT SUM(Amount) FROM Expenses WHERE Timestamp BETWEEN #" & startDateStr & "# AND #" & endDateStr & "#", connection)
+                Dim totalQuery As String = "SELECT SUM([Amount]) FROM Expenses WHERE [Timestamp] BETWEEN #" & startDateStr & "# AND #" & endDateStr & "#"
+
+                Debug.WriteLine("Total query: " + totalQuery)
+
+                Using command As New OleDbCommand(totalQuery, connection)
                     Dim result = command.ExecuteScalar()
                     If result IsNot Nothing AndAlso Not IsDBNull(result) Then
                         totalExpenses = Convert.ToDecimal(result)
                     End If
                 End Using
 
+                Debug.WriteLine($"Total expenses: {totalExpenses}")
+
+                ' If no expenses found, display message and return
+                If totalExpenses = 0 Then
+                    MessageBox.Show("No expenses found for the selected date range.", "No Data", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                    Return
+                End If
+
                 ' Query to get expenses by category
-                Dim query As String = "SELECT Category, SUM(Amount) AS TotalAmount " &
+                Dim query As String = "SELECT [Category], SUM([Amount]) AS TotalAmount " &
                                      "FROM Expenses " &
-                                     "WHERE Timestamp BETWEEN #" & startDateStr & "# AND #" & endDateStr & "# " &
-                                     "GROUP BY Category " &
+                                     "WHERE [Timestamp] BETWEEN #" & startDateStr & "# AND #" & endDateStr & "# " &
+                                     "GROUP BY [Category] " &
                                      "ORDER BY TotalAmount DESC"
 
-                ' Then get categories
+                Debug.WriteLine("Category query: " + query)
+
+                ' Execute the query to get expenses by category
                 Using command As New OleDbCommand(query, connection)
                     Using reader As OleDbDataReader = command.ExecuteReader()
                         While reader.Read()
@@ -91,8 +115,10 @@ Public Class CategoryReportGenerator
                             Dim amount As Decimal = Convert.ToDecimal(reader("TotalAmount"))
                             Dim percentage As Double = If(totalExpenses = 0, 0, Convert.ToDouble(amount / totalExpenses))
 
+                            Debug.WriteLine($"Category: {category}, Amount: {amount}, Percentage: {percentage}")
+
                             ' Add to dictionary for charts
-                            categoryData.Add(category, amount)
+                            categoryData(category) = amount
 
                             ' Add to grid
                             dgvReportData.Rows.Add(category, amount, percentage)
@@ -108,6 +134,11 @@ Public Class CategoryReportGenerator
 
     ' Draw the pie chart
     Private Sub OnDrawPieChart(sender As Object, e As PaintEventArgs)
+        ' Check if data has been loaded - if not, don't try to draw anything
+        If Not dataLoaded Then
+            Return
+        End If
+
         ' Check if we have data
         If categoryData Is Nothing OrElse categoryData.Count = 0 Then
             ' Draw message when no data available
@@ -211,6 +242,11 @@ Public Class CategoryReportGenerator
 
     ' Draw the bar chart (category comparison)
     Private Sub OnDrawBarChart(sender As Object, e As PaintEventArgs)
+        ' Check if data has been loaded - if not, don't try to draw anything
+        If Not dataLoaded Then
+            Return
+        End If
+
         ' Check if we have data
         If categoryData Is Nothing OrElse categoryData.Count = 0 Then
             ' Draw message when no data available

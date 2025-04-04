@@ -13,13 +13,14 @@ Public Class DateRange
 
     ' Helper methods
 
-    ' Format dates for SQL queries
+    ' Format dates for SQL queries - use consistent MM/dd/yyyy format for Access
+    ' IMPORTANT: Use forward slashes (/) not hyphens (-) for MS Access dates
     Public Function GetFormattedStartDate() As String
-        Return StartDate.ToString("yyyy-MM-dd")
+        Return StartDate.ToString("MM/dd/yyyy")  ' Use forward slashes, not hyphens
     End Function
 
     Public Function GetFormattedEndDate() As String
-        Return EndDate.ToString("yyyy-MM-dd")
+        Return EndDate.ToString("MM/dd/yyyy")  ' Use forward slashes, not hyphens
     End Function
 
     ' Check if a specific date is within this range
@@ -52,5 +53,10 @@ Public Class DateRange
     ' Get array of month names in range
     Public Function GetMonthNamesInRange() As String()
         Return GetMonthsInRange().Select(Function(d) d.ToString("MMM yyyy")).ToArray()
+    End Function
+
+    ' For debugging purposes
+    Public Overrides Function ToString() As String
+        Return $"DateRange: {StartDate.ToString("MM/dd/yyyy")} to {EndDate.ToString("MM/dd/yyyy")}"
     End Function
 End Class
