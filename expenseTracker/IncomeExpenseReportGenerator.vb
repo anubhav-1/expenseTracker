@@ -208,7 +208,7 @@ Public Class IncomeExpenseReportGenerator
         End Try
     End Sub
 
-    ' Draw the pie chart - complete implementation
+    ' Draw the pie chart - with legend at the bottom
     Private Sub OnDrawPieChart(sender As Object, e As PaintEventArgs)
         ' Check if data has been loaded
         If Not dataLoaded Then
@@ -246,8 +246,8 @@ Public Class IncomeExpenseReportGenerator
             Return
         End If
 
-        ' Define chart area
-        Dim chartRect As New Rectangle(50, 70, 300, 300)
+        ' Define chart area - make it larger
+        Dim chartRect As New Rectangle(75, 60, 300, 250)
 
         ' Draw pie for Income vs Expenses
         Dim total As Decimal = totalIncome + totalExpenses
@@ -264,43 +264,41 @@ Public Class IncomeExpenseReportGenerator
             e.Graphics.FillPie(expensesBrush, chartRect, incomeAngle, expensesAngle)
         End Using
 
-        ' Draw legend
-        Dim legendY As Integer = 100
+        ' Draw legend at the bottom
+        Dim legendY As Integer = chartRect.Bottom + 20
 
         ' Income legend
         Using brush As New SolidBrush(Color.FromArgb(0, 173, 181))
-            e.Graphics.FillRectangle(brush, New Rectangle(370, legendY, 15, 15))
+            e.Graphics.FillRectangle(brush, New Rectangle(100, legendY, 15, 15))
         End Using
 
         Using brush As New SolidBrush(Color.White)
             e.Graphics.DrawString($"Income: {totalIncome:C} ({totalIncome / total:P1})",
-                             New Font("Segoe UI", 10), brush, 390, legendY)
+                             New Font("Segoe UI", 10), brush, 120, legendY)
         End Using
 
         ' Expenses legend
-        legendY += 30
         Using brush As New SolidBrush(Color.FromArgb(255, 77, 77))
-            e.Graphics.FillRectangle(brush, New Rectangle(370, legendY, 15, 15))
+            e.Graphics.FillRectangle(brush, New Rectangle(100, legendY + 25, 15, 15))
         End Using
 
         Using brush As New SolidBrush(Color.White)
             e.Graphics.DrawString($"Expenses: {totalExpenses:C} ({totalExpenses / total:P1})",
-                             New Font("Segoe UI", 10), brush, 390, legendY)
+                             New Font("Segoe UI", 10), brush, 120, legendY + 25)
         End Using
 
         ' Net income/loss
-        legendY += 50
         Dim netAmount As Decimal = totalIncome - totalExpenses
         Dim netText As String = If(netAmount >= 0, "Net Savings:", "Net Loss:")
         Dim netColor As Color = If(netAmount >= 0, Color.FromArgb(76, 187, 23), Color.Red)
 
         Using brush As New SolidBrush(netColor)
             e.Graphics.DrawString($"{netText} {Math.Abs(netAmount):C}", New Font("Segoe UI", 12, FontStyle.Bold),
-                             brush, 370, legendY)
+                             brush, 100, legendY + 55)
         End Using
     End Sub
 
-    ' Draw the bar chart - complete implementation
+    ' Draw the bar chart - with legend at the bottom
     Private Sub OnDrawBarChart(sender As Object, e As PaintEventArgs)
         ' Check if data has been loaded
         If Not dataLoaded Then
@@ -327,8 +325,8 @@ Public Class IncomeExpenseReportGenerator
             Return
         End If
 
-        ' Define chart area
-        Dim chartRect As New Rectangle(50, 70, 380, 280)
+        ' Define chart area - make it larger
+        Dim chartRect As New Rectangle(50, 60, 380, 250)
 
         ' Find the maximum value for scaling
         Dim maxValue As Decimal = 0
@@ -428,26 +426,25 @@ Public Class IncomeExpenseReportGenerator
             x += groupWidth
         Next
 
-        ' Draw legend
-        Dim legendY As Integer = 50
+        ' Draw legend at the bottom
+        Dim legendY As Integer = chartRect.Bottom + 40
 
         ' Income legend
         Using brush As New SolidBrush(incomeColor)
-            e.Graphics.FillRectangle(brush, New Rectangle(chartRect.Right - 100, legendY, 15, 15))
+            e.Graphics.FillRectangle(brush, New Rectangle(140, legendY, 15, 15))
         End Using
 
         Using brush As New SolidBrush(Color.White)
-            e.Graphics.DrawString("Income", New Font("Segoe UI", 9), brush, chartRect.Right - 80, legendY)
+            e.Graphics.DrawString("Income", New Font("Segoe UI", 10), brush, 160, legendY)
         End Using
 
         ' Expenses legend
-        legendY += 20
         Using brush As New SolidBrush(expenseColor)
-            e.Graphics.FillRectangle(brush, New Rectangle(chartRect.Right - 100, legendY, 15, 15))
+            e.Graphics.FillRectangle(brush, New Rectangle(240, legendY, 15, 15))
         End Using
 
         Using brush As New SolidBrush(Color.White)
-            e.Graphics.DrawString("Expenses", New Font("Segoe UI", 9), brush, chartRect.Right - 80, legendY)
+            e.Graphics.DrawString("Expenses", New Font("Segoe UI", 10), brush, 260, legendY)
         End Using
     End Sub
 End Class
